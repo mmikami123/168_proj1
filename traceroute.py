@@ -131,14 +131,20 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         curr_ttl_routers = set()
         sendsock.set_ttl(ttl)
+
         for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
             if recvsock.recv_select():
                 _, address = recvsock.recvfrom()
                 curr_ttl_routers.add(address[0])
+
         if curr_ttl_routers:
             util.print_result(list(curr_ttl_routers), ttl)
             prev_seen_routers.append(list(curr_ttl_routers))
+        if ip in curr_ttl_routers:
+            break
+
+
     return prev_seen_routers
 
 
