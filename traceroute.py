@@ -139,7 +139,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
                 curr_ttl_routers.add(address[0])
 
         util.print_result(list(curr_ttl_routers), ttl)
-        prev_seen_routers.append(curr_ttl_routers)
+        prev_seen_routers.append(list(curr_ttl_routers))
     return prev_seen_routers
 
 
