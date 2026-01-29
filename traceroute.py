@@ -127,16 +127,20 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     """
 
     # TODO Add your implementation
-    # for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-    #    util.print_result([], ttl)
-    # return []
-    sendsock.set_ttl(30)
-    sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
-    if recvsock.recv_select():
-            buf, address = recvsock.recvfrom()
-    print(f"Packet bytes: {buf.hex()}")
-    print(f"Packet is from IP: {address[0]}")
-    print(f"Packet is from port: {address[1]}")
+    prev_seen_routers = list()
+    for ttl in range(1, TRACEROUTE_MAX_TTL+1):
+        curr_ttl_routers = set()
+        sendsock.set_ttl(ttl)
+
+        for _ in range(PROBE_ATTEMPT_COUNT):
+            sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
+            if recvsock.recv_select():
+                _, address = recvsock.recvfrom()
+                curr_ttl_routers.add(address[0])
+
+        util.print_result(list(curr_ttl_routers), ttl)
+        prev_seen_routers.append(curr_ttl_routers)
+    return prev_seen_routers
 
 
 if __name__ == '__main__':
