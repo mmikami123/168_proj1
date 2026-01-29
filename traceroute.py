@@ -49,8 +49,8 @@ class IPv4:
         self.ttl = int(b[64:72], 2)
         self.proto = int(b[72:80], 2)
         self.cksum = int(b[80:96], 2)
-        self.src = buffer[12:16]
-        self.dst = buffer[16:20]
+        self.src = util.inet_ntoa(buffer[12:16])
+        self.dst = util.inet_ntoa(buffer[16:20])
 
     def __str__(self) -> str:
         return f"IPv{self.version} (tos 0x{self.tos:x}, ttl {self.ttl}, " + \
