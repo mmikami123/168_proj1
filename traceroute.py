@@ -40,7 +40,7 @@ class IPv4:
     def __init__(self, buffer: bytes):
         b = ''.join(format(byte, '08b') for byte in [*buffer])
         self.version = int(b[0:4], 2)
-        self.header_len = int(b[4:8], 2)
+        self.header_len = int(b[4:8], 2) * 4
         self.tos = int(b[8:16], 2)
         self.length = int(b[16:32], 2)
         self.id = int(b[32:48], 2)
