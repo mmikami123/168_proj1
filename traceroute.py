@@ -106,6 +106,18 @@ class UDP:
 
 # TODO feel free to add helper functions if you'd like
 
+def classify_packets(buffer: bytes):
+    ip_header = IPv4(buffer)
+    if ip_header.version != 4:
+        return None, None, None
+    if ip_header.proto == 1:
+        icmp_header = ICMP(buffer[ip_header.header_len:ip_header.header_len+4])
+        return ip_header, icmp_header, None
+    if ip_header.proto == 17:
+        udp_header = UDP(buffer[ip_header.header_len:ip_header.header_len+8])
+        return ip_header, None, udp_header
+    return None, None, None
+
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
     """ Run traceroute and returns the discovered path.
