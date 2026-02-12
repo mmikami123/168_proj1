@@ -140,7 +140,7 @@ def invalid_ip(ip_header: IPv4):
 def classify_packets(buffer: bytes):
     #Test B6: Truncated Buffer
     if (len(buffer) < 20): 
-        return None, None, None
+        return None, None
     
     #Test B8: IP Options
     truncuated_buffer = buffer[0:20] #Ignore IP Options
@@ -163,7 +163,7 @@ def classify_packets(buffer: bytes):
     return None, None
 
 def ignore_packet(buffer: bytes):
-    ip_header, icmp_header  = classify_packets(buffer)
+    ip_header, icmp_header = classify_packets(buffer)
     if ip_header is not None and icmp_header is not None:
         return True 
     return False
