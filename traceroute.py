@@ -120,45 +120,38 @@ def invalid_icmp(icmp_header: ICMP):
 
     return False
 
-
-def invalid_ip(ip_header: IPv4):
-    
-    #Test B8: IP Options
-    if ip_header.header_len < 20:
-        return True
-    
-    #Test B5: Unparsable Response (Garbage Response)
-    payload_length = ip_header.length - ip_header.header_len 
-    if ip_header.proto == 1: #ICMP Length is 4 bytes
-        if payload_length != 4:
-            return True
-    elif ip_header.proto == 17: #UDP Length is 8 Bytes
-        if payload_length != 8:
-            return True
-    
-    return False
-
-
-
+#ADD COMMENTS / CLEAN UP AFTERWARD
 def classify_packets(buffer: bytes):
-    if len(buffer) < 20: #Invalid Packet
+    
+    #OPTIONAL DELETE IF NOT NEEDED
+    if (len(buffer) < 20): #Invalid Packet
         return None, None
-
-    #Test B7: Irrelevant UDP Response
+    
     ip_header = IPv4(buffer)
+    
+    #Test B7: Irrelevant UDP Response
     if ip_header.proto != 1:
         return None, None
 
-    if invalid_ip(ip_header): #Invalid Packet
+    if ip_header.header_len >= len(buffer) or ip_header.proto != 1 or ip_header.header_len < 20:
         return None, None
-    if ip_header.proto == 1:
-        icmp_header = ICMP(buffer[ip_header.header_len:])
+    
+    # ICMP Header should be at least 8 bytes long
+    if len(buffer) < ip_header.header_len + 8:
+        return None, None
+    
+    icmp_header = ICMP(buffer[ip_header.header_len:])
 
-        if invalid_icmp(icmp_header): #Invalid Packet
+    if invalid_icmp(icmp_header): #Invalid Packet
             return None, None
-        
-        return ip_header, icmp_header
+    
+    # PAYLOAD PARSING
+    payload = IPv4(buffer[ip_header.header_len + 8:])
     #Test B7: Irrelevant UDP Response
+    if payload.proto != 17 or len(payload) < 20:
+        return None, None
+        
+    return ip_header, icmp_header
 
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
