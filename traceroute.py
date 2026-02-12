@@ -164,8 +164,8 @@ def classify_packets(buffer: bytes):
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
     if ip_header and icmp_header:
-        return False 
-    return True
+        return True 
+    return False
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
