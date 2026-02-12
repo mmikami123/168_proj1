@@ -106,10 +106,6 @@ class UDP:
 
 #FIXED 
 def invalid_icmp(icmp_header: ICMP):
-    # Invalid ICMP 
-    if not (icmp_header.type == 3 or icmp_header.type == 11):
-        return True
-
     # Test B2: Invalid ICMP Type
     if icmp_header.type == 3 and icmp_header.code != 3:
         return True
@@ -121,26 +117,17 @@ def invalid_icmp(icmp_header: ICMP):
     return False
 
 #ADD COMMENTS / CLEAN UP AFTERWARD
-def classify_packets(buffer: bytes):
-    
-    #OPTIONAL DELETE IF NOT NEEDED
-    if (len(buffer) < 20): #Invalid Packet
-        return None, None
-    
+def classify_packets(buffer: bytes):    
     ip_header = IPv4(buffer)
     
-    #Test B7: Irrelevant UDP Response
-    if ip_header.proto != 1:
-        return None, None
-
-    if ip_header.header_len < 20:
+    if ip_header.proto != 1 or ip_header.header_len < 20:
         return None, None
     
     # ICMP Header should be at least 8 bytes long
     if len(buffer) < ip_header.header_len + 8:
         return None, None
     
-    icmp_header = ICMP(buffer[ip_header.header_len:])
+    icmp_header = ICMP(buffer[ip_header.header_len: ip_header.header_len + 8])
 
     if invalid_icmp(icmp_header): #Invalid Packet
             return None, None
