@@ -133,7 +133,7 @@ def classify_packets(buffer: bytes):
     if ip_header.proto != 1:
         return None, None
 
-    if ip_header.header_len >= len(buffer) or ip_header.header_len < 20:
+    if ip_header.header_len > len(buffer) or ip_header.header_len < 20:
         return None, None
     
     # ICMP Header should be at least 8 bytes long
