@@ -104,17 +104,17 @@ class UDP:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
-def invalid_ip_header(ip_header, buffer, icmp_or_udp):
+def invalid_ip_header(ip_header, buffer_or_payload, icmp_or_udp):
     #Test B4: Invalid IP Protocal
     if ip_header.proto != icmp_or_udp:
         return True
 
     #Test B6: Truncuated Buffer - actual header length different from header length field
-    if ip_header.header_len < 20 or len(buffer) < ip_header.header_len:
+    if ip_header.header_len < 20 or len(buffer_or_payload) < ip_header.header_len:
         return True
 
     #Test B6: Truncuated Buffer : Make sure to parse ICMP from bytes that exist
-    if len(buffer) < ip_header.header_len + 8:
+    if len(buffer_or_payload) < ip_header.header_len + 8:
         return True
 
     return False
@@ -208,12 +208,13 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             sendsock.sendto("Potato".encode(), (ip, port))
             sent_ports.add(port)
             port += 1
-            if recvsock.recv_select():
-                buf, address = recvsock.recvfrom() 
-                ignore_incoming_packet, udp_header = ignore_packet(buf, ip, sent_ports, received_ports) 
-                if not ignore_incoming_packet:
-                    curr_ttl_routers.add(address[0])
-                    received_ports.add(udp_header.dst_port)
+        
+        while recvsock.recv_select() and len(sent_ports) != len(received_ports):
+            buf, address = recvsock.recvfrom() 
+            ignore_incoming_packet, udp_header = ignore_packet(buf, ip, sent_ports, received_ports) 
+            if not ignore_incoming_packet:
+                curr_ttl_routers.add(address[0])
+                received_ports.add(udp_header.dst_port)
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
