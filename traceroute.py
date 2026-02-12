@@ -104,49 +104,51 @@ class UDP:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
-#FIXED 
 def invalid_icmp(icmp_header: ICMP):
-    if icmp_header.type != 3 and icmp_header.type != 11:
-        return True
-
     # Test B2: Invalid ICMP Type
-    if icmp_header.type == 3 and icmp_header.code != 3:
-        return True
+    if icmp_header.type == 3 and icmp_header.code == 3:
+        return False
         
     #Test B3: Invalid ICMP Code
-    if icmp_header.type == 11 and icmp_header.code != 0:
-        return True
+    if icmp_header.type == 11 and icmp_header.code == 0:
+        return False
 
-    return False
+    return True
 
-#ADD COMMENTS / CLEAN UP AFTERWARD
+
 def classify_packets(buffer: bytes):  
+    #Test B6: Truncuated Buffer
     if len(buffer) < 20:
         return None, None
 
     ip_header = IPv4(buffer)
     
+    #Test B4: Invalid IP Protocal
     if ip_header.proto != 1:
         return None, None
     
+    #Test B6: Truncuated Buffer : (actual header length different from header length field)
     if ip_header.header_len < 20 or len(buffer) < ip_header.header_len:
         return None, None
     
-    # ICMP Header should be at least 8 bytes long
+    #Test B6: Truncuated Buffer : Make sure to parse ICMP from bytes that exist
     if len(buffer) < ip_header.header_len + 8:
         return None, None
     
     icmp_header = ICMP(buffer[ip_header.header_len: ip_header.header_len + 8])
 
-    if invalid_icmp(icmp_header): #Invalid Packet
+    if invalid_icmp(icmp_header): 
             return None, None
     
-    # PAYLOAD PARSING
-    playload = buffer[ip_header.header_len + 8:]
-    if len(playload) < 20:
+    # ICMP Payload contains ORIGINAL packet sent back by router causing error alongside UDP packet header
+    icmp_playload = buffer[ip_header.header_len + 8:]
+    
+    #Test B5: Unparsable Response & Test B6 Truncuated Buffer
+    if len(icmp_playload) < 20:
         return None, None 
 
-    payload_ip = IPv4(playload)
+    payload_ip = IPv4(icmp_playload)
+    
     #Test B7: Irrelevant UDP Response
     if payload_ip.proto != 17:
         return None, None
