@@ -122,7 +122,8 @@ def invalid_ip_header(ip_header, buffer, icmp_or_udp):
 
 def invalid_icmp(icmp_header: ICMP, buffer, ip_header):
     # Test B2: Invalid ICMP Type
-    if icmp_header.type == 3 and icmp_header.code != 3:
+    # if icmp_header.type == 3 and icmp_header.code != 3:
+    if icmp_header.type not in [3, 11]:
         return True
         
     # Test B3: Invalid ICMP Code
