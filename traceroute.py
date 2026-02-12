@@ -124,8 +124,9 @@ def invalid_ip(ip_header: IPv4):
     if ip_header.version != 4:
         return True
 
-    #Test B5: Unparsable Response (Garbage Response)
-    payload_length = ip_header.length - ip_header.header_len 
+    # Test cases pass without this line - saved for reference
+    # Test B5: Unparsable Response (Garbage Response)
+    # payload_length = ip_header.length - ip_header.header_len 
     # print(payload_length, ip_header.length, ip_header.header_len)
     # if ip_header.proto == 1: #ICMP Length is 4 bytes
         # if payload_length != 4:
