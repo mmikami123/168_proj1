@@ -155,12 +155,11 @@ def classify_packets(buffer: bytes):
         
     return ip_header, icmp_header
 
-def ignore_packet(ip_header, icmp_header, ip, sent_ports: set, received_ports: set):
+def ignore_packet(buffer: bytes, port, sent_ports: set, received_ports: set):
+    ip_header, icmp_header = classify_packets(buffer)
     if ip_header and icmp_header:
         return False
-    if icmp_header.dst != ip:
-        return False
-    if icmp_header.dst_port in sent_ports or icmp_header.dst_port not in received_ports:
+    if port in sent_ports or port not in received_ports:
         return False 
     return True
 
@@ -194,14 +193,13 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
 
         for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.sendto("Potato".encode(), (ip, port))
-            send_ports.add(port)
+            sent_ports.add(port)
             port += 1
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                ip_header, icmp_header = classify_packets(buf)
-                if not ignore_packet(ip_header, icmp_header, ip, sent_ports, received_ports):
+                if not ignore_packet(buf, port, sent_ports, received_ports):
                     curr_ttl_routers.add(address[0])
-                    received_ports.add(icmp_header.dst_port)
+                    received_ports.add(port)
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
