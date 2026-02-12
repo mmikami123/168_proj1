@@ -133,7 +133,7 @@ def classify_packets(buffer: bytes):
     if ip_header.proto != 1:
         return None, None
 
-    if ip_header.header_len >= len(buffer) or ip_header.proto != 1 or ip_header.header_len < 20:
+    if ip_header.header_len >= len(buffer) or ip_header.header_len < 20:
         return None, None
     
     # ICMP Header should be at least 8 bytes long
@@ -147,7 +147,7 @@ def classify_packets(buffer: bytes):
     
     # PAYLOAD PARSING
     
-    if len(buffer[ip_header.header_len + 8]) < 20:
+    if len(buffer[ip_header.header_len + 8:]) < 20:
         return None, None 
 
     payload_ip = IPv4(buffer[ip_header.header_len + 8:])
