@@ -184,10 +184,10 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     #Test B9: Router Loops
     prev_seen_routers = list()
+    prev_seen_probes = set()
     port = TRACEROUTE_PORT_NUMBER
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         curr_ttl_routers = set()
-        prev_seen_probes = set()
         sendsock.set_ttl(ttl)
 
         for _ in range(PROBE_ATTEMPT_COUNT):
