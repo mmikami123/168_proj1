@@ -106,17 +106,62 @@ class UDP:
 
 # TODO feel free to add helper functions if you'd like
 
-def classify_packets(buffer: bytes):
-    ip_header = IPv4(buffer)
+
+def invalid_icmp(icmp_header: ICMP):
+    # Test B2: Invalid ICMP Type
+    if icmp_header.type in [3, 11]:
+        return True
+        
+    #Test B3: Invalid ICMP Code
+    if icmp_header.code in [0, 3]:
+        return True
+
+    return False
+
+
+def invalid_ip(ip_header: IPv4):
+    #Test B1: Invalid IP Version
     if ip_header.version != 4:
+        return True
+
+    #Test B5: Unparsable Response (Garbage Response)
+    payload_length = ip_header.length - ip_header.header_len 
+    if ip_header.proto == 1: #ICMP Length is 4 bytes
+        if payload_length != 4:
+            return True
+    elif ip_header.proto == 17: #UDP Length is 8 Bytes
+        if payload_length != 8:
+            return True
+    
+    return False
+
+
+
+def classify_packets(buffer: bytes):
+    #Test B6: Truncated Buffer
+    if (len(buffer) < 20): 
+        return None, None, None
+    
+    #Test B8: IP Options
+    truncuated_buffer = buffer[0:20] #Ignore IP Options
+    ip_header = IPv4(truncuated_buffer)
+
+
+    if invalid_ip(ip_header): #Invalid Packet
         return None, None, None
     if ip_header.proto == 1:
         icmp_header = ICMP(buffer[ip_header.header_len:ip_header.header_len+4])
+
+        if invalid_icmp(icmp_header): #Invalid Packet
+            return None, None, None
+        
         return ip_header, icmp_header, None
+    #Test B7: Irrelevant UDP Response
     if ip_header.proto == 17:
-        udp_header = UDP(buffer[ip_header.header_len:ip_header.header_len+8])
-        return ip_header, None, udp_header
+        #udp_header = UDP(buffer[ip_header.header_len:ip_header.header_len+8]) (IRRELEVANT CODE)
+        return None, None, None 
     return None, None, None
+
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
@@ -139,6 +184,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     """
 
     # TODO Add your implementation
+    #Test B9: Router Loops
     prev_seen_routers = list()
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         curr_ttl_routers = set()
@@ -147,6 +193,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
             if recvsock.recv_select():
+                # FIX THIS TO CLASSIFY PACKETS
                 _, address = recvsock.recvfrom()
                 curr_ttl_routers.add(address[0])
 
