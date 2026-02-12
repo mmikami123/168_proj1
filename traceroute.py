@@ -209,7 +209,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             sent_ports.add(port)
             port += 1
         
-        while recvsock.recv_select() and len(sent_ports) != len(received_ports):
+        while len(sent_ports) != len(received_ports) and recvsock.recv_select():
             buf, address = recvsock.recvfrom() 
             ignore_incoming_packet, udp_header = ignore_packet(buf, ip, sent_ports, received_ports) 
             if not ignore_incoming_packet:
