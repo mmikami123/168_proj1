@@ -146,7 +146,7 @@ def classify_packets(buffer: bytes):
 
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
-    if ip_header and icmp_header:
+    if ip_header is None and icmp_header is None:
         return True 
     return False
 
