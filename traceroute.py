@@ -200,7 +200,7 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                if not ignore_packet(buf, prev_seen_probes) and buf not in prev_seen_probes:
+                if not ignore_packet(buf) and buf not in prev_seen_probes:
                     curr_ttl_routers.add(address[0])
                     prev_seen_probes.add(buf)
 
