@@ -109,11 +109,11 @@ class UDP:
 
 def invalid_icmp(icmp_header: ICMP):
     # Test B2: Invalid ICMP Type
-    if icmp_header.type in [3, 11]:
+    if icmp_header.type not in [3, 11]:
         return True
         
     #Test B3: Invalid ICMP Code
-    if icmp_header.code in [0, 3]:
+    if icmp_header.type == 11 and icmp_header.code != 0:
         return True
 
     return False
@@ -148,22 +148,22 @@ def classify_packets(buffer: bytes):
 
 
     if invalid_ip(ip_header): #Invalid Packet
-        return None, None, None
+        return None, None
     if ip_header.proto == 1:
         icmp_header = ICMP(buffer[ip_header.header_len:ip_header.header_len+4])
 
         if invalid_icmp(icmp_header): #Invalid Packet
-            return None, None, None
+            return None, None
         
-        return ip_header, icmp_header, None
+        return ip_header, icmp_header
     #Test B7: Irrelevant UDP Response
     if ip_header.proto == 17:
         #udp_header = UDP(buffer[ip_header.header_len:ip_header.header_len+8]) (IRRELEVANT CODE)
-        return None, None, None 
-    return None, None, None
+        return None, None 
+    return None, None
 
 def ignore_packet(buffer: bytes):
-    ip_header, icmp_header, _ = classify_packets(buffer)
+    ip_header, icmp_header  = classify_packets(buffer)
     if ip_header is not None and icmp_header is not None:
         return True 
     return False
