@@ -157,9 +157,9 @@ def classify_packets(buffer: bytes):
 
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
-    if ip_header is None and icmp_header is None:
-        return True 
-    return False
+    if ip_header and icmp_header:
+        return False
+    return True
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
@@ -184,16 +184,20 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     #Test B9: Router Loops
     prev_seen_routers = list()
+    port = TRACEROUTE_PORT_NUMBER
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
         curr_ttl_routers = set()
+        prev_seen_probes = set()
         sendsock.set_ttl(ttl)
 
         for _ in range(PROBE_ATTEMPT_COUNT):
-            sendsock.sendto("Potato".encode(), (ip, TRACEROUTE_PORT_NUMBER))
+            sendsock.sendto("Potato".encode(), (ip, port))
+            port += 1
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                if not ignore_packet(buf):
+                if not ignore_packet(buf) and address[1] not in prev_seen_probes:
                     curr_ttl_routers.add(address[0])
+                    prev_seen_probes.add(address[1])
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
