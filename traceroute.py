@@ -123,7 +123,7 @@ def invalid_ip(ip_header: IPv4):
     #Test B1: Invalid IP Version
     if ip_header.version != 4:
         return True
-
+    print(ip_header.length, ip_header.header_len, ip_header.length - ip_header.header_len)
     #Test B5: Unparsable Response (Garbage Response)
     payload_length = ip_header.length - ip_header.header_len 
     if ip_header.proto == 1: #ICMP Length is 4 bytes
@@ -146,7 +146,6 @@ def classify_packets(buffer: bytes):
     truncuated_buffer = buffer[0:20] #Ignore IP Options
     ip_header = IPv4(truncuated_buffer)
 
-
     if invalid_ip(ip_header): #Invalid Packet
         return None, None
     if ip_header.proto == 1:
@@ -164,9 +163,9 @@ def classify_packets(buffer: bytes):
 
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
-    if ip_header is not None and icmp_header is not None:
-        return True 
-    return False
+    if ip_header and icmp_header:
+        return False 
+    return True
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
