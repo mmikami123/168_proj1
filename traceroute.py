@@ -104,7 +104,7 @@ class UDP:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
-
+#FIXED 
 def invalid_icmp(icmp_header: ICMP):
     # Invalid ICMP 
     if not (icmp_header.type == 3 or icmp_header.type == 11):
@@ -141,9 +141,13 @@ def invalid_ip(ip_header: IPv4):
 
 
 def classify_packets(buffer: bytes):
-    #Test B6: Truncated Buffer
+    if len(buffer) < 20: #Invalid Packet
+        return None, None
 
+    #Test B7: Irrelevant UDP Response
     ip_header = IPv4(buffer)
+    if ip_header.proto != 1:
+        return None, None
 
     if invalid_ip(ip_header): #Invalid Packet
         return None, None
@@ -155,9 +159,6 @@ def classify_packets(buffer: bytes):
         
         return ip_header, icmp_header
     #Test B7: Irrelevant UDP Response
-    if ip_header.proto == 17:
-        return None, None 
-    return None, None
 
 def ignore_packet(buffer: bytes):
     ip_header, icmp_header = classify_packets(buffer)
