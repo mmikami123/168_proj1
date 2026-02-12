@@ -104,64 +104,76 @@ class UDP:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
-def invalid_icmp(icmp_header: ICMP):
+def invalid_ip_header(ip_header, buffer, icmp_or_udp):
+    #Test B4: Invalid IP Protocal
+    if ip_header.proto != icmp_or_udp:
+        return True
+
+    #Test B6: Truncuated Buffer - actual header length different from header length field
+    if ip_header.header_len < 20 or len(buffer) < ip_header.header_len:
+        return True
+
+    #Test B6: Truncuated Buffer : Make sure to parse ICMP from bytes that exist
+    if len(buffer) < ip_header.header_len + 8:
+        return True
+
+    return False
+
+
+def invalid_icmp(icmp_header: ICMP, buffer, ip_header):
     # Test B2: Invalid ICMP Type
-    if icmp_header.type == 3 and icmp_header.code == 3:
-        return False
+    if icmp_header.type == 3 and icmp_header.code != 3:
+        return True
         
     # Test B3: Invalid ICMP Code
-    if icmp_header.type == 11 and icmp_header.code == 0:
-        return False
+    if icmp_header.type == 11 and icmp_header.code != 0:
+        return True
 
-    return True
+    # ICMP Payload contains ORIGINAL packet sent back by router causing error alongside UDP packet header
+    #Test B5: Unparsable Response & Test B6 Truncuated Buffer
+    icmp_playload = buffer[ip_header.header_len + 8:]
+    if len(icmp_playload) < 20:
+        return True
+
+    #Test B7: Irrelevant UDP Response
+    payload_ip = IPv4(icmp_playload)
+    if payload_ip.proto != 17:
+        return True
+
+    return False
 
 
 def classify_packets(buffer: bytes):  
     #Test B6: Truncuated Buffer
     if len(buffer) < 20:
-        return None, None
+        return None, None, None, None
 
-    ip_header = IPv4(buffer)
-    
-    #Test B4: Invalid IP Protocal
-    if ip_header.proto != 1:
-        return None, None
-    
-    #Test B6: Truncuated Buffer : (actual header length different from header length field)
-    if ip_header.header_len < 20 or len(buffer) < ip_header.header_len:
-        return None, None
-    
-    #Test B6: Truncuated Buffer : Make sure to parse ICMP from bytes that exist
-    if len(buffer) < ip_header.header_len + 8:
-        return None, None
-    
-    icmp_header = ICMP(buffer[ip_header.header_len: ip_header.header_len + 8])
+    new_ip_header = IPv4(buffer)
+    if invalid_ip_header(new_ip_header, buffer, 1):
+        return None, None, None, None    
 
-    if invalid_icmp(icmp_header): 
-            return None, None
-    
-    # ICMP Payload contains ORIGINAL packet sent back by router causing error alongside UDP packet header
-    icmp_playload = buffer[ip_header.header_len + 8:]
-    
-    #Test B5: Unparsable Response & Test B6 Truncuated Buffer
-    if len(icmp_playload) < 20:
-        return None, None 
+    icmp_header = ICMP(buffer[new_ip_header.header_len: new_ip_header.header_len + 8])
+    if invalid_icmp(icmp_header, buffer, new_ip_header): 
+        return None, None, None, None
 
-    payload_ip = IPv4(icmp_playload)
+    icmp_payload = buffer[new_ip_header.header_len + 8:]
+    og_ip_header = IPv4(icmp_payload)
+    if invalid_ip_header(og_ip_header, icmp_payload, 17):
+        return None, None, None, None
     
-    #Test B7: Irrelevant UDP Response
-    if payload_ip.proto != 17:
-        return None, None
-        
-    return ip_header, icmp_header
+    udp_header = UDP(icmp_payload[og_ip_header.header_len: og_ip_header.header_len + 8])
+ 
+    return new_ip_header, icmp_header, og_ip_header, udp_header
 
-def ignore_packet(buffer: bytes, port, sent_ports: set, received_ports: set):
-    ip_header, icmp_header = classify_packets(buffer)
-    if ip_header and icmp_header:
-        return False
-    if port in sent_ports or port not in received_ports:
-        return False 
-    return True
+def ignore_packet(buffer: bytes, ip, sent_ports, received_ports):
+    new_ip_header, icmp_header, og_ip_header, udp_header = classify_packets(buffer)
+    if not new_ip_header or not icmp_header or not og_ip_header or not udp_header:
+        return True, None
+    if og_ip_header.dst != ip:
+        return True, None
+    if udp_header.dst_port not in sent_ports or udp_header.dst_port in received_ports:
+        return True, None
+    return False, udp_header
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
@@ -197,9 +209,10 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             port += 1
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                if not ignore_packet(buf, port, sent_ports, received_ports):
+                ignore_incoming_packet, udp_header = ignore_packet(buf, ip, sent_ports, received_ports) 
+                if not ignore_incoming_packet:
                     curr_ttl_routers.add(address[0])
-                    received_ports.add(port)
+                    received_ports.add(udp_header.dst_port)
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
