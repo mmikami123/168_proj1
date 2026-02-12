@@ -195,9 +195,9 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
             port += 1
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                if not ignore_packet(buf) and address[1] not in prev_seen_probes:
+                if not ignore_packet(buf) and buf not in prev_seen_probes:
                     curr_ttl_routers.add(address[0])
-                    prev_seen_probes.add(address[1])
+                    prev_seen_probes.add(buf)
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
