@@ -146,9 +146,13 @@ def classify_packets(buffer: bytes):
             return None, None
     
     # PAYLOAD PARSING
-    payload = IPv4(buffer[ip_header.header_len + 8:])
+    
+    if len(buffer[ip_header.header_len + 8]) < 20:
+        return None, None 
+
+    payload_ip = IPv4(buffer[ip_header.header_len + 8:])
     #Test B7: Irrelevant UDP Response
-    if payload.proto != 17 or len(payload) < 20:
+    if payload_ip.proto != 17:
         return None, None
         
     return ip_header, icmp_header
