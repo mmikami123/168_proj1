@@ -109,7 +109,7 @@ def invalid_icmp(icmp_header: ICMP):
     if icmp_header.type == 3 and icmp_header.code == 3:
         return False
         
-    #Test B3: Invalid ICMP Code
+    # Test B3: Invalid ICMP Code
     if icmp_header.type == 11 and icmp_header.code == 0:
         return False
 
@@ -155,10 +155,13 @@ def classify_packets(buffer: bytes):
         
     return ip_header, icmp_header
 
-def ignore_packet(buffer: bytes):
-    ip_header, icmp_header = classify_packets(buffer)
+def ignore_packet(ip_header, icmp_header, ip, sent_ports: set, received_ports: set):
     if ip_header and icmp_header:
         return False
+    if icmp_header.dst != ip:
+        return False
+    if icmp_header.dst_port in sent_ports or icmp_header.dst_port not in received_ports:
+        return False 
     return True
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
@@ -184,20 +187,21 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     # TODO Add your implementation
     #Test B9: Router Loops
     prev_seen_routers = list()
-    prev_seen_probes = set()
     port = TRACEROUTE_PORT_NUMBER
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        curr_ttl_routers = set()
+        curr_ttl_routers, sent_ports, received_ports = set(), set(), set()
         sendsock.set_ttl(ttl)
 
         for _ in range(PROBE_ATTEMPT_COUNT):
             sendsock.sendto("Potato".encode(), (ip, port))
+            send_ports.add(port)
             port += 1
             if recvsock.recv_select():
                 buf, address = recvsock.recvfrom() 
-                if not ignore_packet(buf) and buf not in prev_seen_probes:
+                ip_header, icmp_header = classify_packets(buf)
+                if not ignore_packet(ip_header, icmp_header, ip, sent_ports, received_ports):
                     curr_ttl_routers.add(address[0])
-                    prev_seen_probes.add(buf)
+                    received_ports.add(icmp_header.dst_port)
 
         util.print_result(list(curr_ttl_routers), ttl)
         prev_seen_routers.append(list(curr_ttl_routers))
